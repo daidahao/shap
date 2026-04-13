@@ -19,6 +19,7 @@ int compute_exp_val(
     const nb::ndarray<double, nb::shape<-1, -1>, nb::device::cpu>& y,
     nb::ndarray<double, nb::shape<-1, -1>, nb::device::cpu>& ey
 ) {
+	// TODO: use .view() to avoid overhead of operator()
 	std::vector<double> eyVal(D, 0.0);
 
         // I assume we could choose i in the range of std::min(nsamples_added, nsamples_run)

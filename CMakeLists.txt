@@ -71,7 +71,7 @@ add_custom_command(
 install(TARGETS _cutils LIBRARY DESTINATION ${SKBUILD_PROJECT_NAME})
 
 # ==============================================================================
-# Build the Tree Logic extension module (cext)
+# Build the Tree Logic extension module (_cext)
 # ==============================================================================
 
 # Check if the SABI version is being requested
@@ -101,3 +101,51 @@ target_include_directories(_cext PUBLIC ${NUMPY_INCLUDE_DIR})
 
 # Install directive for scikit-build-core
 install(TARGETS _cext LIBRARY DESTINATION ${SKBUILD_PROJECT_NAME})
+
+# ==============================================================================
+# Build the CUDA Tree Logic extension module (_cext_gpu)
+# ==============================================================================
+
+# Check if the CUDA Toolkit is available
+find_package(CUDAToolkit)
+
+if (CUDAToolkit_FOUND)
+  message(STATUS "CUDA Toolkit found, building _cext_gpu module")
+
+  # Enable CUDA language support for this target
+  enable_language(CUDA)
+
+  add_library(lib_cext_gpu MODULE
+    shap/cext/_cext_gpu.cu
+  )
+
+  # set architectures for CUDA compilation
+  set_target_properties(_cext_gpu PROPERTIES
+    CUDA_ARCHITECTURES all
+    POSITION_INDEPENDENT_CODE TRUE
+  )
+
+  python_add_library(
+    _cext_gpu MODULE
+
+    # Target the stable ABI of Python 3.12+, reducing the number of binary wheels
+    ${USE_SABI} WITH_SOABI
+
+    # Sources for the cext_gpu module
+    shap/cext/_cext_gpu.cc
+  )
+
+  # Link the CUDA object file to the Python extension module
+  target_link_libraries(_cext_gpu
+    PRIVATE lib_cext_gpu
+    PRIVATE CUDA::cudart
+  )
+
+  # Get the include directory for NumPy and add it to the include path
+  target_include_directories(_cext_gpu PUBLIC CUDAToolkit_INCLUDE_DIRS)
+
+  # Install directive for scikit-build-core
+  install(TARGETS _cext_gpu LIBRARY DESTINATION ${SKBUILD_PROJECT_NAME})
+else()
+  message(STATUS "CUDA Toolkit not found, skipping _cext_gpu module")
+endif()
